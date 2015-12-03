@@ -35,8 +35,7 @@
 
 #include <picoos.h>
 #include <stdio.h>
-#include <lwip/sockets.h>
-#include <lwip/netdb.h>
+#include <picoos-lwip.h>
 #include <lwip/icmp.h>
 #include <lwip/inet_chksum.h>
 #include <lwip/ip4.h>
