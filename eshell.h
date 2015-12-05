@@ -70,3 +70,4 @@ void  eshCheckNamedArgsUsed(EshContext* ctx);
 void  eshCheckArgsUsed(EshContext* ctx);
 int   eshParse(EshContext* ctx, char* buf);
 void  eshConsole(void);
+void  eshStartTelnetd(void);
