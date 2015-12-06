@@ -47,6 +47,12 @@ const EshCommand eshHelpCommand = {
   .handler = help
 };
 
+bool eshPrompt(EshContext*ctx, const char* prompt, char* buf, int max)
+{
+  ctx->output(ctx, prompt);
+  return ctx->input(ctx, buf, max - 1);
+}
+
 void eshPrintf(EshContext*ctx, const char* fmt, ...)
 {
   va_list ap;

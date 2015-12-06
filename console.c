@@ -40,8 +40,19 @@
 
 static void outputFunc(EshContext* ctx, const char* buf)
 {
-  fprintf(ctx->stream, "%s", buf);
-  fflush(ctx->stream);
+  fprintf(ctx->outputStream, "%s", buf);
+  fflush(ctx->outputStream);
+}
+
+static bool inputFunc(EshContext* ctx, char* buf, int max)
+{
+  if (fgets(buf, max - 1, ctx->inputStream) != NULL) {
+
+    buf[strlen(buf) - 1] = '\0';
+    return true;
+  }
+ 
+  return false;
 }
 
 void eshConsole()
@@ -49,16 +60,19 @@ void eshConsole()
   char buf[80];
   EshContext ctx;
 
-  ctx.stream = stdout;
+  ctx.outputStream = stdout;
+  ctx.inputStream  = stdin;
+
   ctx.output = outputFunc;
+  ctx.input  = inputFunc;
+
   ctx.state  = 0;
 
   while (true) {
 
     printf("console> ");
-    if (fgets(buf, sizeof(buf) - 1, stdin) != NULL) {
+    if (eshPrompt(&ctx, "console> ", buf, sizeof(buf))) {
 
-      buf[strlen(buf) - 1] = '\0';
       eshParse(&ctx, buf);
     }
     else

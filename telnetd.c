@@ -53,22 +53,33 @@ static void telnetFunc(EshContext* ctx, const char* buf)
     if (ctx->state) { // CR state
 
       if (*ptr != '\n')
-        fputc(0, ctx->stream);
+        fputc(0, ctx->outputStream);
 
        ctx->state = 0;
     }
 
     if (*ptr == IAC)
-      fputc(IAC, ctx->stream);
+      fputc(IAC, ctx->outputStream);
 
-    fputc(*ptr, ctx->stream);
+    fputc(*ptr, ctx->outputStream);
     if (*ptr == '\r')
       ctx->state = 1;
 
     ++ptr;
   }
 
-  fflush(ctx->stream);
+  fflush(ctx->outputStream);
+}
+
+static bool inputFunc(EshContext* ctx, char* buf, int max)
+{
+  if (fgets(buf, max - 1, ctx->inputStream) != NULL) {
+
+    buf[strlen(buf) - 1] = '\0';
+    return true;
+  }
+ 
+  return false;
 }
 
 static void tcpClientThread(void* arg)
@@ -77,24 +88,25 @@ static void tcpClientThread(void* arg)
   char buf[80];
   EshContext ctx;
 
-  ctx.stream = fdopen(sock, "w+");
+  ctx.outputStream = fdopen(sock, "w+");
+  ctx.inputStream = ctx.outputStream;
   ctx.output = telnetFunc;
+  ctx.input = inputFunc;
   ctx.state  = 0;
 
   eshPrintf(&ctx, "Hello!\n");
   while (true) {
 
     eshPrintf(&ctx, "#> ");
-    if (fgets(buf, sizeof(buf) - 1, ctx.stream) != NULL) {
+    if (eshPrompt(&ctx, "#> ", buf, sizeof(buf))) {
 
-      buf[strlen(buf) - 2] = '\0';
       eshParse(&ctx, buf);
     }
     else
       break;
   }
   
-  fclose(ctx.stream);
+  fclose(ctx.outputStream);
 }
 
 static void telnetd(void* arg)

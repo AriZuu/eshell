@@ -53,7 +53,9 @@ typedef struct {
 typedef struct _eshContext {
 
   void  (*output)(struct _eshContext* ctx, const char*);
-  FILE* stream;
+  bool  (*input)(struct _eshContext* ctx, char*, int);
+  FILE* outputStream;
+  FILE* inputStream;
   int   argc;
   char* argv[MAX_ARGS];
   EshStatus error;
@@ -69,5 +71,6 @@ EshStatus eshArgError(EshContext* ctx);
 void  eshCheckNamedArgsUsed(EshContext* ctx);
 void  eshCheckArgsUsed(EshContext* ctx);
 int   eshParse(EshContext* ctx, char* buf);
+bool  eshPrompt(EshContext*ctx, const char* prompt, char* buf, int max);
 void  eshConsole(void);
 void  eshStartTelnetd(void);
