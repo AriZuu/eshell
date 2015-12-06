@@ -202,6 +202,12 @@ static void tcpClientThread(void* arg)
   int sock = (int)arg;
   char buf[80];
   EshContext ctx;
+  struct timeval tv;
+
+  tv.tv_sec = 0;
+  tv.tv_usec = 500 * 1000L;
+
+  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
   ctx.outputStream = fdopen(sock, "w+");
   ctx.inputStream = ctx.outputStream;
