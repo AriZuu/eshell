@@ -39,12 +39,20 @@
 #include "eshell-commands.h"
 
 static int help(EshContext* ctx);
+static int exitShell(EshContext* ctx);
 
 const EshCommand eshHelpCommand = {
 
   .name = "help",
   .help = "displays help",
   .handler = help
+};
+
+const EshCommand eshExitCommand = {
+
+  .name = "exit",
+  .help = "exit shell",
+  .handler = exitShell
 };
 
 bool eshPrompt(EshContext*ctx, const char* prompt, char* buf, int max)
@@ -224,6 +232,12 @@ static int help(EshContext* ctx)
   return 0;
 }
 
+static int exitShell(EshContext* ctx)
+{
+  ctx->error = EshQuit;
+  return 0;
+}
+
 int eshParse(EshContext* ctx, char* buf)
 {
   char* cmdName;
@@ -286,12 +300,15 @@ int eshParse(EshContext* ctx, char* buf)
   if (help != NULL && strlen(help) == 0) {
 
     usage(ctx, *cmd);
-    return 0;
+    return 1;
   }
   else {
 
     (*cmd)->handler(ctx);
     switch (ctx->error) {
+    case EshQuit:
+      return 0;
+
     case EshOK:
     case EshUnknownCmd:
     case EshBadArg:
@@ -308,6 +325,6 @@ int eshParse(EshContext* ctx, char* buf)
       break;
     }
 
-    return 0;
+    return 1;
   }
 }

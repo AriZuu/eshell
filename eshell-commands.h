@@ -30,6 +30,7 @@
 
 extern const EshCommand eshPingCommand;
 extern const EshCommand eshHelpCommand;
+extern const EshCommand eshExitCommand;
 
 /*
  * Application should define this.

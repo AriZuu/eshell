@@ -215,7 +215,8 @@ static void tcpClientThread(void* arg)
     eshPrintf(&ctx, "#> ");
     if (eshPrompt(&ctx, "#> ", buf, sizeof(buf))) {
 
-      eshParse(&ctx, buf);
+      if (eshParse(&ctx, buf) == 0)
+        break;
     }
     else
       break;

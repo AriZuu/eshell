@@ -37,7 +37,8 @@ typedef enum {
   EshUnknownCmd,
   EshBadArg,
   EshDuplicateArg,
-  EshMissingArg
+  EshMissingArg,
+  EshQuit
 } EshStatus;
 
 struct _eshContext;
