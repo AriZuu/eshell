@@ -106,38 +106,40 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
     if (c == EOF)
       return false;
 
-    switch(ctx->state) {
+    switch (ctx->state)
+    {
     case STATE_IAC:
-      if(c == TELNET_IAC) {
+      if (c == TELNET_IAC) {
 
         *data++ = c;
         ++len;
-       
-	ctx->state = STATE_NORMAL;
+
+        ctx->state = STATE_NORMAL;
       }
       else {
 
-	switch(c) {
-	case TELNET_WILL:
-	  ctx->state = STATE_WILL;
-	  break;
+        switch (c)
+        {
+        case TELNET_WILL:
+          ctx->state = STATE_WILL;
+          break;
 
-	case TELNET_WONT:
-	  ctx->state = STATE_WONT;
-	  break;
+        case TELNET_WONT:
+          ctx->state = STATE_WONT;
+          break;
 
-	case TELNET_DO:
-	  ctx->state = STATE_DO;
-	  break;
+        case TELNET_DO:
+          ctx->state = STATE_DO;
+          break;
 
-	case TELNET_DONT:
-	  ctx->state = STATE_DONT;
-	  break;
+        case TELNET_DONT:
+          ctx->state = STATE_DONT;
+          break;
 
-	default:
-	  ctx->state = STATE_NORMAL;
-	  break;
-	}
+        default:
+          ctx->state = STATE_NORMAL;
+          break;
+        }
       }
       break;
 
@@ -146,7 +148,7 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
       sendOpt(ctx, TELNET_DONT, c);
       ctx->state = STATE_NORMAL;
       break;
-      
+
     case STATE_WONT:
       /* Reply with a DONT */
       sendOpt(ctx, TELNET_DONT, c);
@@ -167,15 +169,13 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
 
     case STATE_CR:
       ctx->state = STATE_NORMAL;
-      *data++ = '\n';
-      ++len;
       gotLine = true;
       break;
 
     case STATE_NORMAL:
-      if(c == TELNET_IAC) {
+      if (c == TELNET_IAC) {
 
-	ctx->state = STATE_IAC;
+        ctx->state = STATE_IAC;
       }
       else if (c == '\r') {
 
@@ -183,10 +183,15 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
       }
       else {
 
-        *data++ = c;
-        ++len;
-        if (c == '\n')
+        if (c == '\n') {
+
           gotLine = true;
+        }
+        else {
+
+          *data++ = c;
+          ++len;
+        }
       }
       break;
     }
@@ -194,6 +199,8 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
   } while(!gotLine && len < max - 1);
 
   *data = '\0';
+  fputc('\n', ctx->outputStream);
+
   return true;
 }
 
@@ -204,8 +211,8 @@ static void tcpClientThread(void* arg)
   EshContext ctx;
   struct timeval tv;
 
-  tv.tv_sec = 0;
-  tv.tv_usec = 500 * 1000L;
+  tv.tv_sec = 15;
+  tv.tv_usec = 0;
 
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
@@ -218,7 +225,6 @@ static void tcpClientThread(void* arg)
   eshPrintf(&ctx, "Hello!\n");
   while (true) {
 
-    eshPrintf(&ctx, "#> ");
     if (eshPrompt(&ctx, "#> ", buf, sizeof(buf))) {
 
       if (eshParse(&ctx, buf) == 0)

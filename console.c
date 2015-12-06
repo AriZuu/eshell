@@ -70,7 +70,6 @@ void eshConsole()
 
   while (true) {
 
-    printf("console> ");
     if (eshPrompt(&ctx, "console> ", buf, sizeof(buf))) {
 
       eshParse(&ctx, buf);
