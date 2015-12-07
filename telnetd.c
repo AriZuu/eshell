@@ -57,6 +57,10 @@ static void telnetd(void*);
 #define TELNET_DO    253
 #define TELNET_DONT  254
 
+#define OPT_ECHO     1
+#define OPT_SGA      3
+#define OPT_LINEMODE 34
+
 
 static void telnetFunc(EshContext* ctx, const char* buf)
 {
@@ -64,80 +68,88 @@ static void telnetFunc(EshContext* ctx, const char* buf)
 
   while (*ptr) {
 
-    if (ctx->state) { // CR state
+    if (ctx->telnet.crState) { // CR state
 
       if (*ptr != '\n')
-        fputc(0, ctx->outputStream);
+        write(ctx->telnet.sock, "\0", 1);
 
-       ctx->state = 0;
+       ctx->telnet.crState = 0;
     }
 
     if (*ptr == TELNET_IAC)
-      fputc(TELNET_IAC, ctx->outputStream);
+      write(ctx->telnet.sock, ptr, 1);
 
-    fputc(*ptr, ctx->outputStream);
+    if (*ptr == '\n')
+      write(ctx->telnet.sock, "\r\n", 2);
+    else
+      write(ctx->telnet.sock, ptr, 1);
+
     if (*ptr == '\r')
-      ctx->state = 1;
+      ctx->telnet.crState = 1;
 
     ++ptr;
   }
-
-  fflush(ctx->outputStream);
 }
 
 static void sendOpt(EshContext* ctx, uint8_t option, uint8_t value)
 {
-  fputc(TELNET_IAC, ctx->outputStream);
-  fputc(option, ctx->outputStream);
-  fputc(value, ctx->outputStream);
-  fflush(ctx->outputStream);
+  char buf[3];
+
+  buf[0] = TELNET_IAC;
+  buf[1] = option;
+  buf[2] = value;
+
+  write(ctx->telnet.sock, buf, 3);
 }
 
 static bool inputFunc(EshContext* ctx, char* data, int max)
 {
-  int c;
+  uint8_t c;
   int len = 0;
   bool gotLine = false;
   max = max - 1;
 
   do {
     
-    c = fgetc(ctx->inputStream);
-    if (c == EOF)
+    if (read(ctx->telnet.sock, &c, 1) < 1)
       return false;
 
-    switch (ctx->state)
+    switch (ctx->telnet.state)
     {
     case STATE_IAC:
       if (c == TELNET_IAC) {
 
-        *data++ = c;
+        *data = c;
+        if (ctx->telnet.echo)
+          write(ctx->telnet.sock, data, 1);
+
+        data++;
         ++len;
 
-        ctx->state = STATE_NORMAL;
+        ctx->telnet.state = STATE_NORMAL;
       }
       else {
 
         switch (c)
         {
         case TELNET_WILL:
-          ctx->state = STATE_WILL;
+          ctx->telnet.state = STATE_WILL;
           break;
 
         case TELNET_WONT:
-          ctx->state = STATE_WONT;
+          ctx->telnet.state = STATE_WONT;
           break;
 
         case TELNET_DO:
-          ctx->state = STATE_DO;
+          ctx->telnet.state = STATE_DO;
           break;
 
         case TELNET_DONT:
-          ctx->state = STATE_DONT;
+          ctx->telnet.state = STATE_DONT;
           break;
 
         default:
-          ctx->state = STATE_NORMAL;
+          ctx->telnet.state = STATE_NORMAL;
           break;
         }
       }
@@ -146,40 +158,55 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
     case STATE_WILL:
       /* Reply with a DONT */
       sendOpt(ctx, TELNET_DONT, c);
-      ctx->state = STATE_NORMAL;
+      ctx->telnet.state = STATE_NORMAL;
       break;
 
     case STATE_WONT:
       /* Reply with a DONT */
       sendOpt(ctx, TELNET_DONT, c);
-      ctx->state = STATE_NORMAL;
+      ctx->telnet.state = STATE_NORMAL;
       break;
 
     case STATE_DO:
-      /* Reply with a WONT */
-      sendOpt(ctx, TELNET_WONT, c);
-      ctx->state = STATE_NORMAL;
+      if (c == OPT_SGA) {
+
+        if (!ctx->telnet.sga)
+          sendOpt(ctx, TELNET_WILL, c);
+
+        ctx->telnet.sga = true;
+      }
+      else if (c == OPT_ECHO) {
+
+        ctx->telnet.echo = true;
+      }
+      else {
+
+        /* Reply with a WONT */
+        sendOpt(ctx, TELNET_WONT, c);
+      }
+
+      ctx->telnet.state = STATE_NORMAL;
       break;
 
     case STATE_DONT:
       /* Reply with a WONT */
       sendOpt(ctx, TELNET_WONT, c);
-      ctx->state = STATE_NORMAL;
+      ctx->telnet.state = STATE_NORMAL;
       break;
 
     case STATE_CR:
-      ctx->state = STATE_NORMAL;
+      ctx->telnet.state = STATE_NORMAL;
       gotLine = true;
       break;
 
     case STATE_NORMAL:
       if (c == TELNET_IAC) {
 
-        ctx->state = STATE_IAC;
+        ctx->telnet.state = STATE_IAC;
       }
       else if (c == '\r') {
 
-        ctx->state = STATE_CR;
+        ctx->telnet.state = STATE_CR;
       }
       else {
 
@@ -189,8 +216,24 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
         }
         else {
 
-          *data++ = c;
-          ++len;
+          if (c == 127) {
+
+            if (len > 0) {
+
+              write(ctx->telnet.sock, "\010 \010", 3);
+              --data;
+              --len;
+            }
+          }
+          else {
+
+            *data = c;
+            if (ctx->telnet.echo)
+              write(ctx->telnet.sock, data, 1);
+
+            data++;
+            ++len;
+          }
         }
       }
       break;
@@ -199,7 +242,7 @@ static bool inputFunc(EshContext* ctx, char* data, int max)
   } while(!gotLine && len < max - 1);
 
   *data = '\0';
-  fputc('\n', ctx->outputStream);
+  write(ctx->telnet.sock, "\r\n", 2);
 
   return true;
 }
@@ -216,16 +259,18 @@ static void tcpClientThread(void* arg)
 
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  ctx.outputStream = fdopen(sock, "w+");
-  ctx.inputStream = ctx.outputStream;
+  memset(&ctx, '\0', sizeof(EshContext));
+  ctx.telnet.sock = sock;
   ctx.output = telnetFunc;
   ctx.input = inputFunc;
-  ctx.state  = STATE_NORMAL;
+  ctx.telnet.state  = STATE_NORMAL;
 
-  eshPrintf(&ctx, "Hello!\n");
+  sendOpt(&ctx, TELNET_WILL, OPT_ECHO);
+
+  eshPrintf(&ctx, "Pico]OS " POS_VER_S "\n");
   while (true) {
 
-    if (eshPrompt(&ctx, "#> ", buf, sizeof(buf))) {
+    if (eshPrompt(&ctx, "esh> ", buf, sizeof(buf))) {
 
       if (eshParse(&ctx, buf) == 0)
         break;
@@ -234,7 +279,7 @@ static void tcpClientThread(void* arg)
       break;
   }
   
-  fclose(ctx.outputStream);
+  close(ctx.telnet.sock);
 }
 
 static void telnetd(void* arg)
@@ -295,7 +340,6 @@ void eshStartTelnetd()
     printf("telnetd: listen error.\n");
     return;
   }
-
   if (posTaskCreate(telnetd, (void*)sock, 2, 1500) == NULL) {
 
     close(sock);

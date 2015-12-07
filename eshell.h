@@ -55,13 +55,20 @@ typedef struct _eshContext {
 
   void  (*output)(struct _eshContext* ctx, const char*);
   bool  (*input)(struct _eshContext* ctx, char*, int);
-  FILE* outputStream;
-  FILE* inputStream;
   int   argc;
   char* argv[MAX_ARGS];
   EshStatus error;
   const EshCommand* command;
-  int   state;
+
+  struct {
+
+    int   sock;
+    int   state;
+    int   crState;
+    bool  sga;
+    bool  echo;
+
+  } telnet;
 
 } EshContext;  
 

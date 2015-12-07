@@ -251,7 +251,7 @@ int eshParse(EshContext* ctx, char* buf)
 
     cmdName = strsep(&buf, " \t");
     if (cmdName == NULL)
-       return 0;
+       return 1;
 
   } while (*cmdName == '\0');
 
