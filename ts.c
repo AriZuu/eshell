@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Ari Suutari <ari@stonepile.fi>.
+ * Copyright (c) 2012-2013, Ari Suutari <ari@stonepile.fi>.
  * All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -28,12 +28,70 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-extern const EshCommand eshPingCommand;
-extern const EshCommand eshHelpCommand;
-extern const EshCommand eshExitCommand;
-extern const EshCommand eshTsCommand;
+#include <picoos.h>
+#include <picoos-u.h>
+#include <string.h>
 
-/*
- * Application should define this.
- */
-extern const EshCommand *eshCommandList[];
+#include "eshell.h"
+
+#if defined(POS_DEBUGHELP) && POSCFG_ARGCHECK > 1
+
+static int ts(EshContext * ctx)
+{
+  eshCheckNamedArgsUsed(ctx);
+  eshCheckArgsUsed(ctx);
+  if (eshArgError(ctx) != EshOK)
+    return -1;
+
+  int taskCount = 0;
+  int i;
+  struct PICOTASK* task;
+  struct PICOTASK* allTasks[POSCFG_MAX_TASKS];
+  const char* name;
+  int freeStack;
+  unsigned char* sp;
+
+  memset(allTasks, '\0', sizeof(allTasks));
+
+  posTaskSchedLock();
+  task = picodeb_tasklist;
+  while (task != NULL) {
+
+    allTasks[taskCount] = task;
+    taskCount++;
+    task = task->next;
+  }
+
+  posTaskSchedUnlock();
+
+  for (i = 0; i < taskCount; i++) {
+
+    task = allTasks[i];
+
+    if (task->state == task_notExisting)
+      continue;
+
+    freeStack = 0;
+
+    sp = task->handle->stack;
+    while (*sp == PORT_STACK_MAGIC) {
+      ++sp;
+      ++freeStack;
+    }
+
+    name = (task->name != NULL) ? task->name : "?";
+    eshPrintf(ctx, "%06X task %s %d\n", task->handle, name, freeStack);
+  }
+
+
+  eshPrintf(ctx, "%d tasks, %d conf max.\n", taskCount, POSCFG_MAX_TASKS);
+  return 0;
+}
+
+const EshCommand eshTsCommand = {
+  .name = "ts",
+  .help = "show tasks",
+  .handler = ts
+};
+
+#endif

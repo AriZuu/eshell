@@ -42,7 +42,8 @@ TARGET = eshell
 SRC_TXT =	eshell.c \
 		ping.c \
 		console.c \
-		telnetd.c 
+		telnetd.c \
+		ts.c
 
 SRC_HDR =	eshell.h
 SRC_OBJ =
