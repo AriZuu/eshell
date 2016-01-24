@@ -50,7 +50,7 @@ SRC_OBJ =
 CDEFINES += 
 DIR_USRINC += 
 
-MODULES = ../picoos-lwip
+MODULES += ../picoos-lwip
 # 
 # Set output directory.
 #

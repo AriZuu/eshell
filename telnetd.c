@@ -305,7 +305,7 @@ static void telnetd(void* arg)
 /*
  * Create thread to serve connection.
  */
-    if (posTaskCreate(tcpClientThread, (void*)sock, 2, 3500) == NULL)
+    if (nosTaskCreate(tcpClientThread, (void*)sock, 2, 3500, "telnetc") == NULL)
        close(sock);
   }
 }
@@ -340,7 +340,7 @@ void eshStartTelnetd()
     printf("telnetd: listen error.\n");
     return;
   }
-  if (posTaskCreate(telnetd, (void*)sock, 2, 1500) == NULL) {
+  if (nosTaskCreate(telnetd, (void*)sock, 2, 1500, "telnetd") == NULL) {
 
     close(sock);
     fprintf(stderr, "telnetd: failed to create thread.\n");
