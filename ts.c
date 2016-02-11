@@ -89,6 +89,7 @@ static int ts(EshContext * ctx)
 }
 
 const EshCommand eshTsCommand = {
+  .flags = 0,
   .name = "ts",
   .help = "show tasks",
   .handler = ts

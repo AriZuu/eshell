@@ -190,6 +190,7 @@ static int ping(EshContext * ctx)
 }
 
 const EshCommand eshPingCommand = {
+  .flags = 0,
   .name = "ping",
   .help = "n.n.n.n",
   .handler = ping

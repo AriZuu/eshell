@@ -264,6 +264,7 @@ static void tcpClientThread(void* arg)
   ctx.output = telnetFunc;
   ctx.input = inputFunc;
   ctx.telnet.state  = STATE_NORMAL;
+  ctx.remote = true;
 
   sendOpt(&ctx, TELNET_WILL, OPT_ECHO);
 

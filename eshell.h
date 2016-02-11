@@ -43,8 +43,12 @@ typedef enum {
 
 struct _eshContext;
 
+#define ESH_FLAG_CONSOLE	1
+#define ESH_FLAG_REMOTE		2
+
 typedef struct {
 
+  const int   flags;
   const char* name;
   const char* help;
   int (*handler)(struct _eshContext* ctx);
@@ -59,6 +63,7 @@ typedef struct _eshContext {
   char* argv[MAX_ARGS];
   EshStatus error;
   const EshCommand* command;
+  bool remote;
 
   struct {
 

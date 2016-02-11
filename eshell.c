@@ -43,6 +43,7 @@ static int exitShell(EshContext* ctx);
 
 const EshCommand eshHelpCommand = {
 
+  .flags = 0,
   .name = "help",
   .help = "displays help",
   .handler = help
@@ -50,10 +51,25 @@ const EshCommand eshHelpCommand = {
 
 const EshCommand eshExitCommand = {
 
+  .flags = ESH_FLAG_REMOTE,
   .name = "exit",
   .help = "exit shell",
   .handler = exitShell
 };
+
+static bool commandVisible(EshContext*ctx, const EshCommand* cmd)
+{
+  if (cmd->flags == 0)
+    return true;
+
+  if (ctx->remote && (cmd->flags & ESH_FLAG_REMOTE))
+    return true;
+
+  if (!ctx->remote && (cmd->flags & ESH_FLAG_CONSOLE))
+    return true;
+
+  return false;
+}
 
 bool eshPrompt(EshContext*ctx, const char* prompt, char* buf, int max)
 {
@@ -227,7 +243,8 @@ static int help(EshContext* ctx)
   const EshCommand** cmd;
 
   for (cmd = eshCommandList; *cmd != NULL; cmd++)
-    usage(ctx, *cmd);
+    if (commandVisible(ctx, *cmd))
+      usage(ctx, *cmd);
 
   return 0;
 }
@@ -259,8 +276,9 @@ int eshParse(EshContext* ctx, char* buf)
 
   for (cmd = eshCommandList; *cmd != NULL; cmd++) {
 
-    if (!strcmp((*cmd)->name, cmdName))
-      break;
+    if (commandVisible(ctx, *cmd))
+      if (!strcmp((*cmd)->name, cmdName))
+        break;
   }
 
   if (*cmd == NULL) {
