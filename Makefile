@@ -41,6 +41,7 @@ TARGET = eshell
 
 SRC_TXT =	eshell.c \
 		ping.c \
+		ifconfig.c \
 		console.c \
 		telnetd.c \
 		ts.c
