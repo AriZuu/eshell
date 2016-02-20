@@ -44,14 +44,15 @@ SRC_TXT =	eshell.c \
 		ifconfig.c \
 		console.c \
 		telnetd.c \
-		ts.c
+		ts.c \
+		onewire.c
 
 SRC_HDR =	eshell.h
 SRC_OBJ =
 CDEFINES += 
 DIR_USRINC += 
 
-MODULES += ../picoos-lwip
+MODULES += ../picoos-lwip ../picoos-ow
 # 
 # Set output directory.
 #

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Ari Suutari <ari@stonepile.fi>.
+ * Copyright (c) 2016, Ari Suutari <ari@stonepile.fi>.
  * All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,51 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-extern const EshCommand eshPingCommand;
-extern const EshCommand eshIfconfigCommand;
-extern const EshCommand eshHelpCommand;
-extern const EshCommand eshExitCommand;
-extern const EshCommand eshTsCommand;
-extern const EshCommand eshOnewireCommand;
+#include <picoos.h>
+#include <picoos-u.h>
+#include <picoos-ow.h>
+#include <string.h>
+#include <temp10.h>
 
-/*
- * Application should define this.
- */
-extern const EshCommand *eshCommandList[];
+#include "eshell.h"
+
+static int onewire(EshContext * ctx)
+{
+  eshCheckNamedArgsUsed(ctx);
+  eshCheckArgsUsed(ctx);
+  if (eshArgError(ctx) != EshOK)
+    return -1;
+
+  int   rslt;
+  uint8_t serialNum[8];
+  float value;
+  int i;
+
+  rslt = owFirst(0, TRUE, FALSE);
+
+  while (rslt) {
+
+    owSerialNum(0, serialNum, TRUE);
+
+    for (i = 7; i >= 0; i--) {
+
+      eshPrintf(ctx, "%02X", (int)serialNum[i]);
+      if (i > 0)
+        eshPrintf(ctx, "-");
+     }
+
+    ReadTemperature(0, serialNum, &value);
+    eshPrintf(ctx, "=%1.1f\n", value);
+    rslt = owNext(0, TRUE, FALSE);
+  }
+
+  return 0;
+}
+
+const EshCommand eshOnewireCommand = {
+  .flags = 0,
+  .name = "onewire",
+  .help = "list onewire bus",
+  .handler = onewire
+};
+
