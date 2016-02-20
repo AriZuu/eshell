@@ -48,6 +48,12 @@ static int onewire(EshContext * ctx)
   float value;
   int i;
 
+  if (!owAcquire(0, NULL)) {
+
+    eshPrintf(ctx, "owAcquire failed.\n");
+    return -1;
+  }
+
   rslt = owFirst(0, TRUE, FALSE);
 
   while (rslt) {
@@ -66,6 +72,7 @@ static int onewire(EshContext * ctx)
     rslt = owNext(0, TRUE, FALSE);
   }
 
+  owRelease(0);
   return 0;
 }
 
