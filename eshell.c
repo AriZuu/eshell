@@ -231,7 +231,7 @@ char* eshNamedArg(EshContext* ctx, const char* name, bool must)
 
 static void usage(EshContext* ctx, const EshCommand* cmd)
 {
-  eshPrintf(ctx, "%s", cmd->name);
+  eshPrintf(ctx, "%-20s", cmd->name);
   if (cmd->help != NULL)
     eshPrintf(ctx, " %s", cmd->help);
 
