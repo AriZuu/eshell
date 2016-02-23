@@ -28,6 +28,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "eshellcfg.h"
+
 #define MAX_ARGS	10
 
 typedef enum {

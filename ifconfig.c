@@ -34,16 +34,19 @@
 
 #include <picoos.h>
 #include <stdio.h>
-#include <picoos-lwip.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "lwip/netif.h"
-#include "lwip/netifapi.h"
 
 #include "eshell.h"
+
+#if ESHELLCFG_LWIP
+
+#include <picoos-lwip.h>
+#include "lwip/netif.h"
+#include "lwip/netifapi.h"
 #include "eshell-commands.h"
 
 static int ifconfig(EshContext * ctx)
@@ -88,3 +91,4 @@ const EshCommand eshIfconfigCommand = {
   .handler = ifconfig
 };
 
+#endif

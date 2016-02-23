@@ -30,11 +30,14 @@
 
 #include <picoos.h>
 #include <picoos-u.h>
-#include <picoos-ow.h>
 #include <string.h>
-#include <temp10.h>
 
 #include "eshell.h"
+
+#if ESHELLCFG_ONEWIRE
+
+#include <picoos-ow.h>
+#include <temp10.h>
 
 static int onewire(EshContext * ctx)
 {
@@ -83,3 +86,4 @@ const EshCommand eshOnewireCommand = {
   .handler = onewire
 };
 
+#endif

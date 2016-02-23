@@ -35,17 +35,22 @@
 
 #include <picoos.h>
 #include <stdio.h>
-#include <picoos-lwip.h>
-#include <lwip/icmp.h>
-#include <lwip/inet_chksum.h>
-#include <lwip/ip4.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#if LWIP_RAW
 #include "eshell.h"
+
+#if ESHELLCFG_LWIP
+
+#include <picoos-lwip.h>
+
+#if LWIP_RAW
+
+#include <lwip/icmp.h>
+#include <lwip/inet_chksum.h>
+#include <lwip/ip4.h>
 #include "eshell-commands.h"
 
 #define PING_DATA_SIZE 50
@@ -196,4 +201,5 @@ const EshCommand eshPingCommand = {
   .handler = ping
 };
 
+#endif
 #endif
