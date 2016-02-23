@@ -62,7 +62,10 @@ static int ifconfig(EshContext * ctx)
     char buf[50];
 
     inet_ntoa_r(*netif_ip4_addr(ifPtr), buf, sizeof(buf));
-    eshPrintf(ctx, "%.2s%d: %s\n", ifPtr->name, ifPtr->num, buf);
+    eshPrintf(ctx, "%.2s%d: inet4 %s", ifPtr->name, ifPtr->num, buf);
+
+    inet_ntoa_r(*netif_ip4_netmask(ifPtr), buf, sizeof(buf));
+    eshPrintf(ctx, " netmask %s\n", buf);
 
 #if  LWIP_IPV6
    
@@ -73,7 +76,7 @@ static int ifconfig(EshContext * ctx)
       if (netif_ip6_addr_state(ifPtr, i) != 0) {
 
         inet6_ntoa_r(*netif_ip6_addr(ifPtr, i), buf, sizeof(buf));
-        eshPrintf(ctx, "     %s\n", buf);
+        eshPrintf(ctx, "     inet6 %s\n", buf);
       }
     }
 #endif
