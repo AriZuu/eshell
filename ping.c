@@ -96,7 +96,7 @@ static bool pingReceive(int s, struct sockaddr *to, int toLen, int seq)
 
     if (len >= (int)(sizeof(struct ip_hdr) + sizeof(struct icmp_echo_hdr))) {
 
-      if (from.sin_family == AF_INET && from.sin_addr.s_addr == ((struct sockaddr_in*)to)->sin_addr.s_addr) {
+      if (from.sin_family == AF_INET && from.sin_addr.s_addr == ((struct sockaddr_in*)(void*)to)->sin_addr.s_addr) {
 
         iphdr = (struct ip_hdr *)buf;
         packet = (PingPacket*)(buf + (IPH_HL(iphdr) * 4));
