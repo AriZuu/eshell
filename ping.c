@@ -147,7 +147,7 @@ static int ping(EshContext * ctx)
   if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
 
     freeaddrinfo(res);
-    eshPrintf(ctx, "ping: cannot create socket.\n");
+    eshPrintf(ctx, "ping: cannot create socket, error %d.\n", errno);
     return -1;
   }
 
