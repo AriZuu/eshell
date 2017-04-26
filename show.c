@@ -119,7 +119,7 @@ static int es(EshContext * ctx)
     event = allEvents[i];
 
     name = (event->name != NULL) ? event->name : "?";
-    eshPrintf(ctx, "%06X event %s 0x%X\n", event->handle, name, event->state);
+    eshPrintf(ctx, "%06X event %s 0x%X\n", event->handle, name, event->counter);
   }
 
 
