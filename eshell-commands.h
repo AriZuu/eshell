@@ -33,6 +33,7 @@ extern const EshCommand eshIfconfigCommand;
 extern const EshCommand eshHelpCommand;
 extern const EshCommand eshExitCommand;
 extern const EshCommand eshTsCommand;
+extern const EshCommand eshEsCommand;
 extern const EshCommand eshOnewireCommand;
 
 /*

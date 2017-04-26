@@ -44,7 +44,7 @@ SRC_TXT =	eshell.c \
 		ifconfig.c \
 		console.c \
 		telnetd.c \
-		ts.c \
+		show.c \
 		onewire.c
 
 SRC_HDR =	eshell.h

@@ -88,11 +88,57 @@ static int ts(EshContext * ctx)
   return 0;
 }
 
+static int es(EshContext * ctx)
+{
+  eshCheckNamedArgsUsed(ctx);
+  eshCheckArgsUsed(ctx);
+  if (eshArgError(ctx) != EshOK)
+    return -1;
+
+  int eventCount = 0;
+  int i;
+  struct PICOEVENT* event;
+  struct PICOEVENT* allEvents[POSCFG_MAX_EVENTS];
+  const char* name;
+
+  memset(allEvents, '\0', sizeof(allEvents));
+
+  posTaskSchedLock();
+  event = picodeb_eventlist;
+  while (event != NULL) {
+
+    allEvents[eventCount] = event;
+    eventCount++;
+    event = event->next;
+  }
+
+  posTaskSchedUnlock();
+
+  for (i = 0; i < eventCount; i++) {
+
+    event = allEvents[i];
+
+    name = (event->name != NULL) ? event->name : "?";
+    eshPrintf(ctx, "%06X event %s 0x%X\n", event->handle, name, event->state);
+  }
+
+
+  eshPrintf(ctx, "%d events, %d conf max.\n", eventCount, POSCFG_MAX_EVENTS);
+  return 0;
+}
+
 const EshCommand eshTsCommand = {
   .flags = 0,
   .name = "ts",
   .help = "show tasks",
   .handler = ts
+};
+
+const EshCommand eshEsCommand = {
+  .flags = 0,
+  .name = "es",
+  .help = "show events",
+  .handler = es
 };
 
 #endif
