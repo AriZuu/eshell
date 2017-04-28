@@ -29,7 +29,6 @@
  */
 
 #include <picoos.h>
-#include <picoos-lwip.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -40,6 +39,9 @@
 
 #include "eshell.h"
 
+#if ESHELLCFG_LWIP
+
+#include <picoos-lwip.h>
 static void telnetd(void*);
 
 #define STATE_NORMAL 0
@@ -347,3 +349,5 @@ void eshStartTelnetd()
     fprintf(stderr, "telnetd: failed to create thread.\n");
   }
 }
+
+#endif
