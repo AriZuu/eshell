@@ -34,7 +34,12 @@
 
 #include "eshell.h"
 
-#if defined(POS_DEBUGHELP) && POSCFG_ARGCHECK > 1
+#if defined(POS_DEBUGHELP)
+
+/*
+ * Versions of 'show tasks' and 'show events' commands that dig
+ * information out from pico]OS debug help structures.
+ */
 
 static int ts(EshContext * ctx)
 {
@@ -48,8 +53,6 @@ static int ts(EshContext * ctx)
   struct PICOTASK* task;
   struct PICOTASK* allTasks[POSCFG_MAX_TASKS];
   const char* name;
-  int freeStack;
-  unsigned char* sp;
 
   memset(allTasks, '\0', sizeof(allTasks));
 
@@ -71,6 +74,13 @@ static int ts(EshContext * ctx)
     if (task->state == task_notExisting)
       continue;
 
+    name = (task->name != NULL) ? task->name : "?";
+
+#if POSCFG_ARGCHECK > 1
+
+    int freeStack;
+    unsigned char* sp;
+
     freeStack = 0;
 
     sp = task->handle->stack;
@@ -79,10 +89,11 @@ static int ts(EshContext * ctx)
       ++freeStack;
     }
 
-    name = (task->name != NULL) ? task->name : "?";
-    eshPrintf(ctx, "%06X task %s %d\n", task->handle, name, freeStack);
+    eshPrintf(ctx, "%08X %s %d\n", task->handle, name, freeStack);
+#else
+    eshPrintf(ctx, "%08X %s\n", task->handle, name);
+#endif
   }
-
 
   eshPrintf(ctx, "%d tasks, %d conf max.\n", taskCount, POSCFG_MAX_TASKS);
   return 0;
@@ -100,6 +111,7 @@ static int es(EshContext * ctx)
   struct PICOEVENT* event;
   struct PICOEVENT* allEvents[POSCFG_MAX_EVENTS];
   const char* name;
+  const char* typeName;
 
   memset(allEvents, '\0', sizeof(allEvents));
 
@@ -118,14 +130,128 @@ static int es(EshContext * ctx)
 
     event = allEvents[i];
 
+    switch (event->type) {
+    case event_semaphore:
+      typeName = "sem";
+      break;
+
+    case event_mutex:
+      typeName = "mutex";
+      break;
+
+    case event_flags:
+      typeName = "flag";
+      break;
+
+    }
+
     name = (event->name != NULL) ? event->name : "?";
-    eshPrintf(ctx, "%06X event %s 0x%X\n", event->handle, name, event->counter);
+    eshPrintf(ctx, "%06X %-5s %s 0x%X\n", event->handle, typeName, name, event->counter);
   }
 
 
   eshPrintf(ctx, "%d events, %d conf max.\n", eventCount, POSCFG_MAX_EVENTS);
   return 0;
 }
+
+#elif NOSCFG_FEATURE_REGISTRY
+
+/*
+ * Alternative versions of 'show tasks' and 'show events' commands that dig
+ * information out from pico]OS registry. This has less runtime
+ * performance impacts than the version using debug help stuff.
+ * The downside is that only nano-layer objects are reported.
+ */
+static int ts(EshContext * ctx)
+{
+  eshCheckNamedArgsUsed(ctx);
+  eshCheckArgsUsed(ctx);
+  if (eshArgError(ctx) != EshOK)
+    return -1;
+
+  int taskCount = 0;
+
+  NOSREGQHANDLE_t q;
+  NOSGENERICHANDLE_t h;
+  POSTASK_t task;
+  char name[80];
+
+  q = nosRegQueryBegin(REGTYPE_TASK);
+  while (nosRegQueryElem(q, &h, name, sizeof(name)) == E_OK) {
+
+    task = (POSTASK_t)h;
+    taskCount++;
+
+#if POSCFG_ARGCHECK > 1
+
+    int freeStack;
+    unsigned char* sp;
+    freeStack = 0;
+
+    sp = task->stack;
+    while (*sp == PORT_STACK_MAGIC) {
+      ++sp;
+      ++freeStack;
+    }
+
+    eshPrintf(ctx, "%08X %s %d\n", task, name, freeStack);
+#else
+    eshPrintf(ctx, "%08X %s\n", task, name);
+#endif
+  }
+
+  nosRegQueryEnd(q);
+
+  eshPrintf(ctx, "%d nano tasks + idle task, %d conf max.\n", taskCount, POSCFG_MAX_TASKS);
+  return 0;
+}
+
+static int listEvents(EshContext* ctx, int type, const char* typeName)
+{
+  NOSREGQHANDLE_t q;
+  NOSGENERICHANDLE_t h;
+  char name[80];
+  int eventCount = 0;
+
+  q = nosRegQueryBegin(type);
+  while (nosRegQueryElem(q, &h, name, sizeof(name)) == E_OK) {
+
+    eventCount++;
+    eshPrintf(ctx, "%06X %-5s %s\n", h, typeName, name);
+  }
+
+  nosRegQueryEnd(q);
+  return eventCount;
+}
+
+static int es(EshContext * ctx)
+{
+  eshCheckNamedArgsUsed(ctx);
+  eshCheckArgsUsed(ctx);
+  if (eshArgError(ctx) != EshOK)
+    return -1;
+
+  int eventCount = 0;
+
+#if NOSCFG_FEATURE_SEMAPHORES
+  eventCount += listEvents(ctx, REGTYPE_SEMAPHORE, "sem");
+#endif
+
+#if NOSCFG_FEATURE_FLAGS
+  eventCount += listEvents(ctx, REGTYPE_FLAG, "flag");
+#endif
+
+#if NOSCFG_FEATURE_MUTEXES
+  eventCount += listEvents(ctx, REGTYPE_MUTEX, "mutex");
+#endif
+
+  eshPrintf(ctx, "%d nano events, %d conf max.\n", eventCount, POSCFG_MAX_EVENTS);
+  return 0;
+}
+
+#endif
+
+#if defined(POS_DEBUGHELP) || NOSCFG_FEATURE_REGISTRY
 
 const EshCommand eshTsCommand = {
   .flags = 0,
