@@ -34,6 +34,10 @@
 
 #include "eshell.h"
 
+#if UOSCFG_NEWLIB_SYSCALLS == 1 && NOSCFG_MEM_MANAGER_TYPE != 1
+#include <unistd.h>
+#endif
+
 #if defined(POS_DEBUGHELP)
 
 /*
@@ -65,6 +69,13 @@ static int ts(EshContext * ctx)
     task = task->next;
   }
 
+#if POSCFG_ARGCHECK > 1
+
+    int freeStack;
+    unsigned char* sp;
+
+#endif
+
   posTaskSchedUnlock();
 
   for (i = 0; i < taskCount; i++) {
@@ -77,9 +88,6 @@ static int ts(EshContext * ctx)
     name = (task->name != NULL) ? task->name : "?";
 
 #if POSCFG_ARGCHECK > 1
-
-    int freeStack;
-    unsigned char* sp;
 
     freeStack = 0;
 
@@ -96,6 +104,26 @@ static int ts(EshContext * ctx)
   }
 
   eshPrintf(ctx, "%d tasks, %d conf max.\n", taskCount, POSCFG_MAX_TASKS);
+
+#if POSCFG_ARGCHECK > 1
+
+  sp = portIrqStack;
+  while (*sp == PORT_STACK_MAGIC) {
+    ++sp;
+    ++freeStack;
+  }
+
+  eshPrintf(ctx, "IRQ stack free %d\n", freeStack);
+#endif
+
+#if UOSCFG_NEWLIB_SYSCALLS == 1 && NOSCFG_MEM_MANAGER_TYPE != 1
+
+  uint32_t heapUsed = (char*)sbrk(0) - (char*)__heap_start;
+  uint32_t heapSize = (char*)__heap_end - (char*)__heap_start;
+  eshPrintf(ctx, "Heap used: %u (%d %%)\n", heapUsed, 100 * heapUsed / heapSize);
+
+#endif
+
   return 0;
 }
 
@@ -176,6 +204,13 @@ static int ts(EshContext * ctx)
   POSTASK_t task;
   char name[80];
 
+#if POSCFG_ARGCHECK > 1
+
+  int freeStack;
+  unsigned char* sp;
+
+#endif
+
   q = nosRegQueryBegin(REGTYPE_TASK);
   while (nosRegQueryElem(q, &h, name, sizeof(name)) == E_OK) {
 
@@ -184,8 +219,6 @@ static int ts(EshContext * ctx)
 
 #if POSCFG_ARGCHECK > 1
 
-    int freeStack;
-    unsigned char* sp;
     freeStack = 0;
 
     sp = task->stack;
@@ -203,6 +236,25 @@ static int ts(EshContext * ctx)
   nosRegQueryEnd(q);
 
   eshPrintf(ctx, "%d nano tasks + idle task, %d conf max.\n", taskCount, POSCFG_MAX_TASKS);
+
+#if POSCFG_ARGCHECK > 1
+
+  sp = portIrqStack;
+  while (*sp == PORT_STACK_MAGIC) {
+    ++sp;
+    ++freeStack;
+  }
+
+  eshPrintf(ctxm "IRQ stack free %d\n", freeStack);
+#endif
+
+#if UOSCFG_NEWLIB_SYSCALLS == 1 && NOSCFG_MEM_MANAGER_TYPE != 1
+
+  uint32_t heapUsed = (char*)sbrk(0) - (char*)__heap_start;
+  uint32_t heapSize = (char*)__heap_end - (char*)__heap_start;
+  eshPrintf(ctx, "Heap used: %u (%d %%)\n", heapUsed, 100 * heapUsed / heapSize);
+
+#endif
   return 0;
 }
 
