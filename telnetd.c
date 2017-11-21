@@ -256,7 +256,7 @@ static void tcpClientThread(void* arg)
   EshContext ctx;
   struct timeval tv;
 
-  tv.tv_sec = 15;
+  tv.tv_sec = 60;
   tv.tv_usec = 0;
 
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
