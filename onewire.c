@@ -63,11 +63,11 @@ static int onewire(EshContext * ctx)
 
     owSerialNum(0, serialNum, TRUE);
 
-    for (i = 7; i >= 0; i--) {
+    for (i = 0; i < 7; i++) {
 
       eshPrintf(ctx, "%02X", (int)serialNum[i]);
-      if (i > 0)
-        eshPrintf(ctx, "-");
+      if (i == 0)
+        eshPrintf(ctx, ".");
      }
 
     ReadTemperature(0, serialNum, &value);
